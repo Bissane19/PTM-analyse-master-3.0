@@ -1,7 +1,8 @@
 // Master Pro Max 3.0 - Version Corrigée (Anti-Crash)
 // Assure-toi que ce fichier est bien dans le dossier /netlify/functions/
+
 exports.handler = async (event, context) => {
-    // 1. Récupération des données (via URL params ou Body)
+    // 1. Récupération des données (via URL params)
     const params = event.queryStringParameters;
     
     // 2. Préparation des données (valeurs par défaut si vide)
@@ -46,6 +47,4 @@ exports.handler = async (event, context) => {
             }
         })
     };
-};
-  validateNumericField,
 };
