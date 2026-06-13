@@ -1,82 +1,51 @@
-/**
- * MASTER PRO MAX 3.0 – FINAL EDITION
- * Calcule la marge nette, le taux de perte et génère des alertes métier.
- * Prêt pour intégration n8n / Webhook / Node.js.
- */
+// Master Pro Max 3.0 - Version Corrigée (Anti-Crash)
+// Assure-toi que ce fichier est bien dans le dossier /netlify/functions/
+exports.handler = async (event, context) => {
+    // 1. Récupération des données (via URL params ou Body)
+    const params = event.queryStringParameters;
+    
+    // 2. Préparation des données (valeurs par défaut si vide)
+    const data = {
+        production: parseFloat(params.production) || 0,
+        tonnesVendues: parseFloat(params.tonnesVendues) || 0,
+        tonnesRetour: parseFloat(params.tonnesRetour) || 0,
+        prixVente: parseFloat(params.prixVente) || 0,
+        prixRecup: parseFloat(params.prixRecup) || 0,
+        coeffCimentPercent: parseFloat(params.coeffCimentPercent) || 0,
+        coeffVariablePercent: parseFloat(params.coeffVariablePercent) || 0,
+        coeffFixesPercent: parseFloat(params.coeffFixesPercent) || 0
+    };
 
-function validateNumericField(value, fieldName) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`Le champ \`${fieldName}\` doit être un nombre valide.`);
-  }
-  return value;
-}
+    // 3. Calculs
+    const coutCiment = data.production * (data.coeffCimentPercent / 100);
+    const coutVariable = data.production * (data.coeffVariablePercent / 100);
+    const coutFixes = data.production * (data.coeffFixesPercent / 100);
+    const totalCost = coutCiment + coutVariable + coutFixes;
+    
+    const revenue = (data.tonnesVendues * data.prixVente) + (data.tonnesRetour * data.prixRecup);
+    const margeNet = revenue - totalCost;
+    
+    // Calcul taux de perte sécurisé
+    let totalSorti = data.tonnesVendues + data.tonnesRetour;
+    let tauxPerte = totalSorti > 0 ? (data.tonnesRetour / totalSorti) * 100 : 0;
+    
+    // 4. Logique d'alerte métier
+    let statut = (tauxPerte > 15) ? "ALERT: Taux de perte élevé! Vérifier dosage." : "STATUS: Performance optimale.";
 
-function calculateMargePro(data) {
-  const production = validateNumericField(data.production, 'production');
-  const tonnesVendues = validateNumericField(data.tonnesVendues, 'tonnesVendues');
-  const tonnesRetour = validateNumericField(data.tonnesRetour, 'tonnesRetour');
-  const prixVente = validateNumericField(data.prixVente, 'prixVente');
-  const prixRecup = validateNumericField(data.prixRecup, 'prixRecup');
-  const coeffCimentPercent = validateNumericField(data.coeffCimentPercent, 'coeffCimentPercent');
-  const coeffVariablePercent = validateNumericField(data.coeffVariablePercent, 'coeffVariablePercent');
-  const coeffFixesPercent = validateNumericField(data.coeffFixesPercent, 'coeffFixesPercent');
-
-  // 1. حساب التكاليف
-  const totalCost = (production * (coeffCimentPercent / 100)) +
-                    (production * (coeffVariablePercent / 100)) +
-                    (production * (coeffFixesPercent / 100));
-// 2. حساب المارج الصافي والنسبة
-const margeNette = (prixVente * tonnesVendues) - totalCost;
-const tauxPerte = (tonnesRetour / tonnesVendues) * 100;
-
-// 3. إرجاع النتيجة
-return {
-    totalCost,
-    margeNette,
-    tauxPerte,
-    alert: (tauxPerte > 5) ? 'Alerte: Taux de perte élevé' : 'OK'
+    // 5. Retour de la réponse en format JSON pour Netlify
+    return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            margeNet: margeNet.toFixed(2) + " DH",
+            tauxPerte: tauxPerte.toFixed(2) + "%",
+            statut: statut,
+            details: {
+                totalCost: totalCost.toFixed(2),
+                revenue: revenue.toFixed(2)
+            }
+        })
+    };
 };
-  // 2. حساب المداخيل
-  const revenu = (tonnesVendues * prixVente) + (tonnesRetour * prixRecup);
-
-  // 3. النتيجة
-  const margeNet = revenu - totalCost;
-  const totalTonnes = tonnesVendues + tonnesRetour;
-  const tauxPerte = totalTonnes > 0
-    ? (tonnesRetour / totalTonnes) * 100
-    : 0;
-
-  // 4. الـ Logic د "الخبير" (الـ Alert)
-  const statut = tauxPerte > 15
-    ? 'ALERT: Taux de perte élevé! Vérifier le dosage.'
-    : 'STATUS: Performance optimale.';
-
-  return {
-    margeNet,
-    tauxPerte: Number(tauxPerte.toFixed(2)),
-    tauxPerteLabel: `${tauxPerte.toFixed(2)}%`,
-    statut,
-    totalCost,
-    revenu,
-  };
-}
-
-if (require.main === module) {
-  const result = calculateMargePro({
-    production: 1200,
-    tonnesVendues: 950,
-    tonnesRetour: 250,
-    prixVente: 1350,
-    prixRecup: 380,
-    coeffCimentPercent: 55,
-    coeffVariablePercent: 22,
-    coeffFixesPercent: 18,
-  });
-
-  console.log(result);
-}
-
-module.exports = {
-  calculateMargePro,
   validateNumericField,
 };
