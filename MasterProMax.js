@@ -25,7 +25,17 @@ function calculateMargePro(data) {
   const totalCost = (production * (coeffCimentPercent / 100)) +
                     (production * (coeffVariablePercent / 100)) +
                     (production * (coeffFixesPercent / 100));
+// 2. حساب المارج الصافي والنسبة
+const margeNette = (prixVente * tonnesVendues) - totalCost;
+const tauxPerte = (tonnesRetour / tonnesVendues) * 100;
 
+// 3. إرجاع النتيجة
+return {
+    totalCost,
+    margeNette,
+    tauxPerte,
+    alert: (tauxPerte > 5) ? 'Alerte: Taux de perte élevé' : 'OK'
+};
   // 2. حساب المداخيل
   const revenu = (tonnesVendues * prixVente) + (tonnesRetour * prixRecup);
 
